@@ -4,15 +4,28 @@ using Azure.Messaging.EventHubs.Consumer;
 using Azure.Storage.Blobs;
 using EventHubDemo.Consumer.Configuration;
 using EventHubDemo.Consumer.EventConsumer;
+using Microsoft.ApplicationInsights.Extensibility;
+using Microsoft.ApplicationInsights.WorkerService;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 
 var host = Host.CreateApplicationBuilder(args);
 
+var applicationInsightConfig = new ApplicationInsightsConfig();
+host.Configuration.Bind(ApplicationInsightsConfig.SectionName, applicationInsightConfig);
+
+host.Services.AddApplicationInsightsTelemetryWorkerService(new ApplicationInsightsServiceOptions
+{
+    ConnectionString = applicationInsightConfig.ConnectionString,
+    EnableAdaptiveSampling = true,
+});
+
 host.Services.Configure<BlobStorageConfig>(host.Configuration.GetSection(BlobStorageConfig.SectionName));
 host.Services.Configure<AzureEventHubConfig>(host.Configuration.GetSection(AzureEventHubConfig.SectionName));
 host.Services.Configure<EventProcessorConfig>(host.Configuration.GetSection(EventProcessorConfig.SectionName));
+host.Services.Configure<ApplicationInsightsConfig>(host.Configuration.GetSection(ApplicationInsightsConfig.SectionName));
 
 host.Services.AddSingleton<IEventConsumer, EventConsumer>();
 host.Services.AddSingleton((sp) =>
@@ -34,6 +47,11 @@ host.Services.AddSingleton((sp) =>
         fullyQualifiedNamespace: eventHubConfig.FullyQualifiedNamespace,
         eventHubName: eventHubConfig.HubName,
         credential: new DefaultAzureCredential());
+});
+host.Services.Configure<TelemetryConfiguration>(config =>
+{
+    var credential = new DefaultAzureCredential();
+    config.SetAzureTokenCredential(credential);
 });
 
 var app = host.Build();

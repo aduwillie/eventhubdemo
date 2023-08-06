@@ -1,0 +1,10 @@
+{
+  "profiles": {
+    "EventHubDemo.Consumer": {
+      "commandName": "Project"
+    },
+    "Docker": {
+      "commandName": "Docker"
+    }
+  }
+}

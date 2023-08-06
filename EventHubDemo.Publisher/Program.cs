@@ -3,6 +3,7 @@ using Azure.Messaging.EventHubs.Producer;
 using EventHubDemo.Publisher.Application;
 using EventHubDemo.Publisher.Configuration;
 using Microsoft.ApplicationInsights.Extensibility;
+using Microsoft.ApplicationInsights.Extensibility.EventCounterCollector;
 using Microsoft.ApplicationInsights.WorkerService;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -29,6 +30,16 @@ host.Services.Configure<TelemetryConfiguration>(config =>
     config.SetAzureTokenCredential(credential);
 });
 host.Services.Configure<ApplicationInsightsConfig>(host.Configuration.GetSection(ApplicationInsightsConfig.SectionName));
+
+host.Services.ConfigureTelemetryModule<EventCounterCollectionModule>((module, options) =>
+{
+    module.Counters.Clear();
+    module.Counters.Add(new EventCounterCollectionRequest("System.Runtime", "cpu-usage"));
+    module.Counters.Add(new EventCounterCollectionRequest("System.Runtime", "gc-heap-size"));
+    module.Counters.Add(new EventCounterCollectionRequest("System.Runtime", "assembly-count"));
+    module.Counters.Add(new EventCounterCollectionRequest("System.Net.Http", "requests-started"));
+    module.Counters.Add(new EventCounterCollectionRequest("System.Net.Http", "requests-failed"));
+});
 
 host.Services.AddSingleton<IEventPublisher, EventPublisher>();
 host.Services.AddSingleton((sp) =>

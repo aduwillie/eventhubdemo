@@ -1,0 +1,10 @@
+{
+  "profiles": {
+    "EventHubDemo.Publisher": {
+      "commandName": "Project"
+    },
+    "Docker": {
+      "commandName": "Docker"
+    }
+  }
+}

@@ -18,6 +18,7 @@ internal class EventPublisher : IEventPublisher
     private readonly EventHubProducerClient eventHubProducerClient;
     private readonly EventProducerConfig eventProducerConfig;
     private readonly TelemetryClient telemetryClient;
+    private Timer? timer;
 
     public EventPublisher(
         ILogger<EventPublisher> logger,
@@ -31,7 +32,21 @@ internal class EventPublisher : IEventPublisher
         this.telemetryClient = telemetryClient;
     }
 
-    public async Task Publish(CancellationToken cancellationToken = default)
+    public Task Publish(CancellationToken cancellationToken = default)
+    {
+        timer = new Timer(
+            callback: (_) =>
+            {
+                _ = DoWork(cancellationToken);
+            },
+            state: null,
+            dueTime: 1000,
+            period: 10000); // 10 seconds interval
+
+        return Task.CompletedTask;
+    }
+
+    private async Task DoWork(CancellationToken cancellationToken)
     {
         logger.LogInformation("Publishing events...");
 
@@ -51,7 +66,7 @@ internal class EventPublisher : IEventPublisher
                         { "Count", batch.Count }
                     });
 
-                await Task.Delay(TimeSpan.FromSeconds(5)); // wait 5 seconds
+                await Task.Delay(TimeSpan.FromSeconds(10)); // wait 5 seconds
             }
         }
     }

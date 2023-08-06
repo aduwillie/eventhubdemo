@@ -1,6 +1,6 @@
 ﻿namespace EventHubDemo.Consumer.EventConsumer;
 
-internal interface IEventConsumer
+internal interface IEventConsumer : IAsyncDisposable
 {
     Task Consume(CancellationToken cancellationToken = default);
 }

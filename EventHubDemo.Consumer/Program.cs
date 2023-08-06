@@ -20,6 +20,7 @@ host.Services.AddApplicationInsightsTelemetryWorkerService(new ApplicationInsigh
 {
     ConnectionString = applicationInsightConfig.ConnectionString,
     EnableAdaptiveSampling = true,
+    EnableQuickPulseMetricStream = true,
 });
 
 host.Services.Configure<BlobStorageConfig>(host.Configuration.GetSection(BlobStorageConfig.SectionName));

@@ -4,7 +4,6 @@ using EventHubDemo.Consumer.Configuration;
 using Microsoft.ApplicationInsights;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using System.Collections.Concurrent;
 using System.Text;
 
 namespace EventHubDemo.Consumer.EventConsumer;
@@ -19,9 +18,9 @@ internal class EventConsumer : IEventConsumer
     private readonly EventProcessorClient eventProcessorClient;
     private readonly EventProcessorConfig eventProcessorConfig;
     private readonly TelemetryClient telemetryClient;
-    private readonly System.Timers.Timer telemetryFlushTimer;
+    private Timer? timer;
 
-    private int eventsConsumed = 0;
+    private long eventsConsumed = 0;
 
     public EventConsumer(
         ILogger<EventConsumer> logger,
@@ -33,36 +32,40 @@ internal class EventConsumer : IEventConsumer
         this.eventProcessorClient = eventProcessorClient;
         eventProcessorConfig = optionsMonitor.CurrentValue;
         this.telemetryClient = telemetryClient;
-
-        telemetryFlushTimer = new System.Timers.Timer(eventProcessorConfig.TelemetryFlushTimeInSeconds);
-        telemetryFlushTimer.Elapsed += async (_, __) => await HandleMetricFlushing();
     }
 
     public async Task Consume(CancellationToken cancellationToken)
     {
         eventProcessorClient.ProcessEventAsync += (args) => ProcessEventHandler(args, cancellationToken);
-        eventProcessorClient.ProcessErrorAsync += ProcessErrorHandler;
+        eventProcessorClient.ProcessErrorAsync += (args) => ProcessErrorHandler(args, cancellationToken);
 
         await eventProcessorClient.StartProcessingAsync();
-        telemetryFlushTimer.Start();
         telemetryClient.TrackEvent(TELEMETRY_EVENT_PROCESSOR_STARTED);
 
-        if (cancellationToken.IsCancellationRequested)
-        {
-            await eventProcessorClient.StopProcessingAsync();
-            telemetryFlushTimer.Stop();
-            telemetryFlushTimer.Dispose();
-            telemetryClient.TrackEvent(TELEMETRY_EVENT_PROCESSOR_STOPPED);
-        }
+        timer = new Timer(
+            callback: (_) =>
+            {
+                _ = HandleMetricFlushing();
+            },
+            state: null,
+            dueTime: 1000,
+            period: 2000); // 5 seconds interval
     }
 
     private async Task ProcessEventHandler(ProcessEventArgs args, CancellationToken cancellationToken)
     {
+        if (cancellationToken.IsCancellationRequested)
+        {
+            await eventProcessorClient.StopProcessingAsync();
+            telemetryClient.TrackEvent(TELEMETRY_EVENT_PROCESSOR_STOPPED);
+            return;
+        }
+
         logger.LogInformation("Received event: {event} on partition: {partitionId}",
             Encoding.UTF8.GetString(args.Data.EventBody),
             args.Partition.PartitionId);
 
-        Interlocked.Increment(ref eventsConsumed);
+        eventsConsumed += 1;
 
         // Track successful operation event in AI
         telemetryClient.TrackEvent(
@@ -78,12 +81,17 @@ internal class EventConsumer : IEventConsumer
         // Update checkpoint in blob storage
         await args.UpdateCheckpointAsync(cancellationToken);
         telemetryClient.TrackEvent(TELEMETRY_CHECKPOINT_UPDATED);
-
-        await Task.Delay(TimeSpan.FromSeconds(eventProcessorConfig.DelayInSeconds));
     }
 
-    private Task ProcessErrorHandler(ProcessErrorEventArgs args)
+    private async Task ProcessErrorHandler(ProcessErrorEventArgs args, CancellationToken cancellationToken)
     {
+        if (cancellationToken.IsCancellationRequested)
+        {
+            await eventProcessorClient.StopProcessingAsync();
+            telemetryClient.TrackEvent(TELEMETRY_EVENT_PROCESSOR_STOPPED);
+            return;
+        }
+
         logger.LogError("Partion {partitionId} encountered an unexpected exception {exceptionMessage}",
             args.PartitionId,
             args.Exception.Message);
@@ -94,17 +102,22 @@ internal class EventConsumer : IEventConsumer
                 { "PartitionId", args.PartitionId },
                 { "ErrorMessage", args.Exception.Message },
             });
-
-        return Task.CompletedTask;
     }
 
     private Task HandleMetricFlushing()
     {
-        if (eventsConsumed is not 0)
+        if (eventsConsumed != 0)
         {
             telemetryClient.TrackMetric("EventsConsumed", eventsConsumed);
+            eventsConsumed = 0;
         }
 
         return Task.CompletedTask;
+    }
+
+    public ValueTask DisposeAsync()
+    {
+        timer?.Dispose();
+        return ValueTask.CompletedTask;
     }
 }

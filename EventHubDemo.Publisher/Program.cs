@@ -18,6 +18,7 @@ host.Services.AddApplicationInsightsTelemetryWorkerService(new ApplicationInsigh
 {
     ConnectionString = applicationInsightConfig.ConnectionString,
     EnableAdaptiveSampling = true,
+    EnableQuickPulseMetricStream = true,
 });
 
 host.Services.Configure<AzureEventHubConfig>(host.Configuration.GetSection(AzureEventHubConfig.SectionName));
@@ -52,4 +53,4 @@ Console.CancelKeyPress += (sender, args) =>
 var eventPublisher = app.Services.GetRequiredService<IEventPublisher>();
 await eventPublisher.Publish(cancellationTokenSource.Token);
 
-//await app.RunAsync();
+await app.RunAsync();

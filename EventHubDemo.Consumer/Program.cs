@@ -27,6 +27,20 @@ host.Services.AddApplicationInsightsTelemetryWorkerService(new ApplicationInsigh
     EnableQuickPulseMetricStream = true,
 });
 
+// Add Azure App Configuration to DI
+var azureAppConfig = new AzureAppConfig();
+host.Configuration.Bind(AzureAppConfig.SectionName, azureAppConfig);
+
+host.Configuration.AddAzureAppConfiguration(options =>
+{
+    options.Connect(endpoint: new(azureAppConfig.Endpoint), credential: new DefaultAzureCredential());
+    //options.ConfigureRefresh(refresh =>
+    //{
+    //    refresh.SetCacheExpiration(TimeSpan.FromMinutes(1)); // Refresh app configuration keys every 1min
+    //});
+});
+host.Services.AddAzureAppConfiguration();
+
 host.Services.Configure<BlobStorageConfig>(host.Configuration.GetSection(BlobStorageConfig.SectionName));
 host.Services.Configure<AzureEventHubConfig>(host.Configuration.GetSection(AzureEventHubConfig.SectionName));
 host.Services.Configure<EventProcessorConfig>(host.Configuration.GetSection(EventProcessorConfig.SectionName));

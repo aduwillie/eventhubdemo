@@ -11,7 +11,9 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 
 var host = Host.CreateApplicationBuilder();
+var defaultAzureCredential = new DefaultAzureCredential();
 
+// Add Application Insights to DI
 var applicationInsightConfig = new ApplicationInsightsConfig();
 host.Configuration.Bind(ApplicationInsightsConfig.SectionName, applicationInsightConfig);
 
@@ -22,15 +24,31 @@ host.Services.AddApplicationInsightsTelemetryWorkerService(new ApplicationInsigh
     EnableQuickPulseMetricStream = true,
 });
 
+// Add Azure App Configuration to DI
+var azureAppConfig = new AzureAppConfig();
+host.Configuration.Bind(AzureAppConfig.SectionName, azureAppConfig);
+
+host.Configuration.AddAzureAppConfiguration(options =>
+{
+    options.Connect(endpoint: new(azureAppConfig.Endpoint), credential: defaultAzureCredential);
+    //options.ConfigureRefresh(refresh =>
+    //{
+    //    refresh.SetCacheExpiration(TimeSpan.FromMinutes(1));
+    //});
+});
+host.Services.AddAzureAppConfiguration();
+
+// Bind various configurations to mapped classes
 host.Services.Configure<AzureEventHubConfig>(host.Configuration.GetSection(AzureEventHubConfig.SectionName));
 host.Services.Configure<EventProducerConfig>(host.Configuration.GetSection(EventProducerConfig.SectionName));
 host.Services.Configure<TelemetryConfiguration>(config =>
 {
-    var credential = new DefaultAzureCredential();
+    var credential = defaultAzureCredential;
     config.SetAzureTokenCredential(credential);
 });
 host.Services.Configure<ApplicationInsightsConfig>(host.Configuration.GetSection(ApplicationInsightsConfig.SectionName));
 
+// Configure Application Insights telemetry modules
 host.Services.ConfigureTelemetryModule<EventCounterCollectionModule>((module, options) =>
 {
     module.Counters.Clear();
@@ -49,11 +67,12 @@ host.Services.AddSingleton((sp) =>
     return new EventHubProducerClient(
         fullyQualifiedNamespace: eventHubConfig?.FullyQualifiedNamespace,
         eventHubName: eventHubConfig?.HubName,
-        credential: new DefaultAzureCredential());
+        credential: defaultAzureCredential);
 });
 
 var app = host.Build();
 
+// Create and track cancellations
 var cancellationTokenSource = new CancellationTokenSource();
 Console.CancelKeyPress += (sender, args) =>
 {

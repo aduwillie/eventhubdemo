@@ -3,9 +3,11 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.6.33829.357
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EventHubDemo.Publisher", "EventHubDemo.Publisher\EventHubDemo.Publisher.csproj", "{FBC15374-4933-4FFF-9D9E-7BB23F3B36A2}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EventHubDemo.Publisher", "EventHubDemo.Publisher\EventHubDemo.Publisher.csproj", "{FBC15374-4933-4FFF-9D9E-7BB23F3B36A2}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EventHubDemo.Consumer", "EventHubDemo.Consumer\EventHubDemo.Consumer.csproj", "{11E8D320-8732-4DA6-8708-C2AB6B20D9E5}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EventHubDemo.Consumer", "EventHubDemo.Consumer\EventHubDemo.Consumer.csproj", "{11E8D320-8732-4DA6-8708-C2AB6B20D9E5}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EventHubDemo.Consolidated", "EventHubDemo.Consolidated\EventHubDemo.Consolidated.csproj", "{E53E7D91-7CE3-4883-8D97-F3AACE869026}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -21,6 +23,10 @@ Global
 		{11E8D320-8732-4DA6-8708-C2AB6B20D9E5}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{11E8D320-8732-4DA6-8708-C2AB6B20D9E5}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{11E8D320-8732-4DA6-8708-C2AB6B20D9E5}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E53E7D91-7CE3-4883-8D97-F3AACE869026}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E53E7D91-7CE3-4883-8D97-F3AACE869026}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E53E7D91-7CE3-4883-8D97-F3AACE869026}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E53E7D91-7CE3-4883-8D97-F3AACE869026}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
